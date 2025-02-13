@@ -271,6 +271,7 @@ def test_model_corruptions(model, test_loader, device):
 # Setup
 model = get_model(model_name, patch_size, sfmax, dim, depth, heads, mlp_dim, device)
 criterion = nn.CrossEntropyLoss()
+criterion2 = nn.MSELoss()
 
 if opt=='sgd':
   optimizer = optim.SGD(model.parameters(), lr=lr)
@@ -338,7 +339,7 @@ for epoch in range(num_epochs):
     
     data_dict = dict(zip(metric_names, metrics))
     #LOG RESULTS
-    wandb.log(data_dict, step=epoch) 
+    wandb.log(data_dict, step=epoch//5) 
 
 # Save the trained model
 torch.save(model.state_dict(), 'model.pth')
