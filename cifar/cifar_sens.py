@@ -61,6 +61,7 @@ if args.corr:
 else: 
     metric_names = ["train acc", "train loss", "test acc", "test loss", "train sensitivity", "sharpness1", "sharpness2"]
 
+eval_epoch = 5
 lr = args.lr
 sched = args.sched
 num_epochs = args.num_epochs
@@ -214,7 +215,7 @@ def get_loaders(metric_names, dir_name, transform, labels, sev):
         path_name = dir_name+name+'.npy'
         imgs = np.load(path_name)
         new_imgs = torch.stack([transform(img) for img in imgs[idx:idx+10000]])
-        dl = DataLoader(TensorDataset(new_imgs, labels), batch_size=10000, shuffle=False)
+        dl = DataLoader(TensorDataset(new_imgs, labels), batch_size=1000, shuffle=False)
         loaders.append(dl)
     return loaders
 
@@ -293,7 +294,7 @@ for epoch in range(num_epochs):
         metrics = torch.zeros(7+len(corrupted_loaders))
     else:
         metrics = torch.zeros(7)
-    if epoch%5==0:
+    if epoch%eval_epoch==0:
         tr_loss, tr_acc, tr_sens = test_model(model, train_loader, device, var, num_reps, imsize, patch_size, True)
         te_loss, te_acc, _ = test_model(model, test_loader, device, var, num_reps, imsize, patch_size, False)
         metrics[0], metrics[1], metrics[2], metrics[3], metrics[4] = tr_acc/bs, tr_loss, te_acc/bs, te_loss, tr_sens/bs
@@ -336,10 +337,10 @@ for epoch in range(num_epochs):
         scheduler.step()
     print(f"Epoch [{epoch + 1}/{num_epochs}] - Loss: {tr_loss:.4f}")
     
-    
-    data_dict = dict(zip(metric_names, metrics))
-    #LOG RESULTS
-    wandb.log(data_dict, step=epoch//5) 
+    if epoch%eval_epoch==0:
+        data_dict = dict(zip(metric_names, metrics))
+        #LOG RESULTS
+        wandb.log(data_dict, step=epoch//5) 
 
 # Save the trained model
 torch.save(model.state_dict(), 'model.pth')
